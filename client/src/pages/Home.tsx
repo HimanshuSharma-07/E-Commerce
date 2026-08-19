@@ -19,11 +19,11 @@ const Home = () => {
       </h1>
 
       <main>
-        <ProductCard 
+        <ProductCard
           productId="one"
           photo="https://m.media-amazon.com/images/I/615tKndaduL._SX679_.jpg"
           name="Mackbook"
-          price= {999999}
+          price={999999}
           stock={10}
           handler={addToCartHandler}
         />
