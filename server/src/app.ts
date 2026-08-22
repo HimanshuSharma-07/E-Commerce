@@ -4,7 +4,7 @@ dotenv.config({
     path: "../.env"
 })
 import morgan from "morgan";
-import { prisma } from "./utils/prismas.js";
+import cookieParser from "cookie-parser";
 
 const app = express();
 
@@ -12,11 +12,10 @@ const PORT = 5000;
 
 app.use(express.json());
 app.use(morgan("dev"));
+app.use(cookieParser())
 
 
 import userRouter from "./routes/user.route.js"
-import { error } from "node:console";
-
 
 
 app.use("/api/v1/user", userRouter);

@@ -5,7 +5,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { prisma } from "../utils/prismas.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
-import { access } from "node:fs";
+import type { AuthRequest } from "../types/types.js";
+
 
 const generateAcessAndRefreshToken = async (userId: string) => {
   try {
@@ -19,8 +20,8 @@ const generateAcessAndRefreshToken = async (userId: string) => {
       throw new ApiError(404, "User not found");
     }
 
-    const accessToken = generateAccessToken(userId, user.email);
-    const refreshToken = generateRefreshToken(userId);
+    const accessToken = generateAccessToken(user.id, user.email);
+    const refreshToken = generateRefreshToken(user.id);
 
     await prisma.user.update({
       where: {
@@ -43,7 +44,7 @@ const generateAcessAndRefreshToken = async (userId: string) => {
   }
 };
 
-const register = asyncHandler(async (req: Request, res: Response) => {
+const registerUser = asyncHandler(async (req: Request, res: Response) => {
   const { name, email, password } = req.body;
 
   if ([name, email, password].some((filed) => filed.trim() === "")) {
@@ -60,11 +61,6 @@ const register = asyncHandler(async (req: Request, res: Response) => {
 
   const hashPassword = await bcrypt.hash(password, 10);
 
-  console.log({
-    name,
-    email,
-    hashPassword,
-  });
   const user = await prisma.user.create({
     data: {
       name,
@@ -91,7 +87,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(201, createdUser, "User Registered Successfully"));
 });
 
-const login = asyncHandler(async (req: Request, res: Response) => {
+const loginUser = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   if (!email) {
@@ -151,7 +147,46 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   )
 });
 
+const logoutUser = asyncHandler(async (req: AuthRequest, res: Response) => {
+ 
+  await prisma.user.update({
+    where: {
+      id: req.user.id
+    },
+    data: {
+      refreshToken: null
+    },
+    
+  }) 
+   
+  const options = {
+    httpOnly: true,
+    secure: true
+  }
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(
+      new ApiResponse(200, {}, "User Logged out Successfully")
+    )
+  
+})
+
+const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
+  
+  const users = await prisma.user.findMany();
+
+  return  res.status(200)
+  .json(
+    new ApiResponse(200, users, "All users")
+  )
+})
+
 export { 
-    register, 
-    login
+    registerUser, 
+    loginUser,
+    logoutUser,
+    getAllUsers
 };
