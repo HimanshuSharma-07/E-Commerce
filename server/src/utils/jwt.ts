@@ -4,7 +4,7 @@ import type { Role } from "../generated/prisma/enums.js";
 export const generateAccessToken = (userId: string, email: string) => {
     return jwt.sign(
         {
-            userId,
+            id: userId,
             email,
         },
         process.env.ACCESS_TOKEN_SECRET!,
@@ -17,7 +17,7 @@ export const generateAccessToken = (userId: string, email: string) => {
 export const generateRefreshToken = (userId: string) =>{
     return jwt.sign(
         {
-            userId,
+            id: userId,
         },
         process.env.REFRESH_TOKEN_SECRET!,
         {
