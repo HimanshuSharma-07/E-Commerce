@@ -4,6 +4,6 @@ import type { User } from "../generated/prisma/client.js";
 export interface AuthRequest extends Request {
     user: Pick<
     User,
-    "id" | "email" | "name"| "role" | "createdAt" | "updateAt"
+    "id" | "email" | "name"| "role" | "createdAt" | "updatedAt"
     >;
 }

@@ -6,7 +6,7 @@ import { prisma } from "../utils/prismas.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 import type { AuthRequest } from "../types/types.js";
-
+import jwt, { type JwtPayload } from "jsonwebtoken";
 
 const generateAcessAndRefreshToken = async (userId: string) => {
   try {
@@ -77,7 +77,7 @@ const registerUser = asyncHandler(async (req: Request, res: Response) => {
       id: true,
       name: true,
       email: true,
-      updateAt: true,
+      updatedAt: true,
       createdAt: true,
     },
   });
@@ -123,7 +123,7 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
       id: true,
       name: true,
       email: true,
-      updateAt: true,
+      updatedAt: true,
       createdAt: true,
     },
   });
@@ -174,6 +174,56 @@ const logoutUser = asyncHandler(async (req: AuthRequest, res: Response) => {
   
 })
 
+const refreshAccessToken = asyncHandler(async (req: AuthRequest, res: Response) =>  {
+
+  const incomingRefreshToken =  req.cookies.refreshToken || req.body.refreshToken
+
+  if (!incomingRefreshToken) {
+      throw new ApiError(401, "unauthroized request")
+  }
+
+  try {
+      const decodeToken = jwt.verify(
+        incomingRefreshToken, 
+        process.env.REFRESH_TOKEN_SECRET as string
+      ) as JwtPayload & {id: string}
+
+      const user = await prisma.user.findUnique({
+        where: { id: decodeToken.id } })
+
+        if (!user) {
+            throw new  ApiError(401, "Invalid Refresh Token")
+        }
+
+        if (incomingRefreshToken !== user.refreshToken) {
+            throw new ApiError(401, "Refresh token is expired or used")
+        }
+
+        const options = {
+          httpOnly:  true,
+          secure: true
+        }
+
+        const {accessToken, refreshToken} = await generateAcessAndRefreshToken(user.id)
+
+        return res
+          .status(200)
+          .cookie("accessToken", accessToken, options)
+          .cookie("refreshToken", refreshToken,  options)
+          .json(
+            new ApiResponse(
+              200,
+              {accessToken, refreshToken},
+              "Access token refreshed Successfully"
+            )
+          )
+    
+  } catch (error) {
+      const message = (error instanceof Error && error.message) ? error.message : "Invalid refresh token"
+      throw new ApiError(401, message)
+  }
+})
+
 const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
   
   const users = await prisma.user.findMany();
@@ -188,5 +238,6 @@ export {
     registerUser, 
     loginUser,
     logoutUser,
+    refreshAccessToken,
     getAllUsers
 };
