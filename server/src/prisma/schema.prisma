@@ -7,15 +7,37 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
 model User {
   id           String    @id @default(uuid())
   name         String
   email        String    @unique
-  role         Role?     @default(USER)
+  role         Role      @default(USER)
   password     String
   refreshToken String?
-  updateAt     DateTime  @updatedAt
   createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   Address      Address[]
   cart         Cart?
   orders       Order[]
@@ -42,47 +64,35 @@ model Category {
   name      String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  product   Product[]
+  products  Product[]
 }
 
 model Product {
-  id          String           @id @default(uuid())
+  id          String      @id @default(uuid())
   name        String
-  slug        String           @unique
-  description String?
+  description String
+  image       String
+  price       Int
   categoryId  String
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  category    Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  variant     ProductVariant[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  cartItems   CartItem[]
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  inventory   Inventory?
+  orderItems  OrderItem[]
 
   @@index([categoryId])
   @@index([name])
 }
 
-model ProductVariant {
-  id         String      @id @default(uuid())
-  productId  String
-  name       String
-  price      Int
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @unique
-  cartItems  CartItem[]
-  inventory  Inventory?
-  orderItems OrderItem[]
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([productId])
-}
-
 model Inventory {
-  id        String         @id @default(uuid())
-  variantId String         @unique
-  quantity  Int            @default(0)
-  reserved  Int            @default(0)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  productId String   @unique
+  quantity  Int      @default(0)
+  reserved  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([quantity])
 }
@@ -91,21 +101,22 @@ model Cart {
   id        String     @id @default(uuid())
   userId    String     @unique
   createdAt DateTime   @default(now())
-  updatedAt DateTime   @unique
+  updatedAt DateTime   @updatedAt
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     CartItem[]
 }
 
 model CartItem {
-  id        String         @id @default(uuid())
+  id        String   @id @default(uuid())
   cartId    String
-  variantId String
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([cartId, variantId])
+  @@unique([cartId, productId])
 }
 
 model Order {
@@ -114,10 +125,10 @@ model Order {
   addressId     String
   status        OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
-  totoalAmount  Int
+  totalAmount   Int
   createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @unique
-  address       Address       @relation(fields: [addressId], references: [id], onDelete: Cascade)
+  updatedAt     DateTime      @updatedAt
+  address       Address       @relation(fields: [addressId], references: [id])
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   orderItems    OrderItem[]
   payment       Payment?
@@ -128,17 +139,18 @@ model Order {
 }
 
 model OrderItem {
-  id        String         @id @default(uuid())
+  id        String   @id @default(uuid())
+  productId String
   orderId   String
-  varintId  String
   unitPrice Int
   quantity  Int
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @unique
-  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  variant   ProductVariant @relation(fields: [varintId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id])
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+  @@index([productId])
 }
 
 model Payment {
@@ -148,28 +160,6 @@ model Payment {
   status            PaymentStatus
   amount            Int
   createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @unique
+  updatedAt         DateTime      @updatedAt
   order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-}
-
-enum Role {
-  USER
-  ADMIN
-}
-
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
-  REFUNDED
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
 }
