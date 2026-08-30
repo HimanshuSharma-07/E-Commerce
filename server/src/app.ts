@@ -16,9 +16,12 @@ app.use(cookieParser())
 
 
 import userRouter from "./routes/user.route.js"
-
+import productRouter from "./routes/product.route.js"
+import cartRouter from  "./routes/cart.route.js"
 
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/product", productRouter)
+app.use("/api/v1/cart", cartRouter)
 
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
