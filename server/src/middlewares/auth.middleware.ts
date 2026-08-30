@@ -31,7 +31,7 @@ export const verifyJWT = asyncHandler( async (req: AuthRequest, _: Response, nex
             name: true,
             email: true,
             role: true,
-            updateAt: true,
+            updatedAt: true,
             createdAt: true,
         }
     })
