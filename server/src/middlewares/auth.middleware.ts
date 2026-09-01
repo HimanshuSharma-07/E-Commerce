@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import jwt, { type JwtPayload } from "jsonwebtoken"
-import { prisma } from "../utils/prismas.js";
+import { prisma } from "../utils/prisma.js";
 import type { AuthRequest } from "../types/types.js";
 
 

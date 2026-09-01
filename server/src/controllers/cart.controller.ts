@@ -1,7 +1,7 @@
 import type { Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
-import { prisma } from "../utils/prismas.js";
+import { prisma } from "../utils/prisma.js";
 import type { AuthRequest } from "../types/types.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
