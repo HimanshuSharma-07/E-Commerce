@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
-import { prisma } from "../utils/prismas.js";
+import { prisma } from "../utils/prisma.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 

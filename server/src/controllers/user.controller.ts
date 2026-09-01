@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import type { Request, Response } from "express";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { prisma } from "../utils/prismas.js";
+import { prisma } from "../utils/prisma.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 import type { AuthRequest } from "../types/types.js";

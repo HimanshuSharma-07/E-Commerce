@@ -157,7 +157,7 @@ model Payment {
   id                String        @id @default(uuid())
   orderId           String        @unique
   paymentProviderId String        @unique
-  status            PaymentStatus
+  status            PaymentStatus 
   amount            Int
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
