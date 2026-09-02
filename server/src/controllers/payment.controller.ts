@@ -115,7 +115,7 @@ const verifyPayment = asyncHandler(async (req: AuthRequest, res: Response) => {
         throw new ApiError(403, "Unauthorized payment");
     }
 
-    const body = `${razorpay_order_id|razorpay_payment_id}`
+    const body = `${razorpay_order_id}|${razorpay_payment_id}`
 
     const expectedSignature = crypto.createHmac(
         "sha256",
@@ -129,24 +129,34 @@ const verifyPayment = asyncHandler(async (req: AuthRequest, res: Response) => {
         throw new ApiError(400, "Invalid payment Signature")
     }
 
-    const updatedPayment = await  prisma.payment.update({
-        where: {
-            id: payment.id
-        },
-        data: {
-            paymentId: razorpay_payment_id,
-            status: "PAID"
-        }
-    })
 
-    const updatedOrder  = await prisma.order.update({
-        where: {
-            id: payment.orderId
-        },
-        data: {
-            paymentStatus: "PAID",
-            status: "CONFIRMED"
+    const result = await prisma.$transaction(async (tx) => {
+
+        const updatedPayment = await  tx.payment.update({
+            where: {
+                id: payment.id
+            },
+            data: {
+                paymentId: razorpay_payment_id,
+                status: "PAID"
+            }
+        })
+    
+        const updatedOrder  = await tx.order.update({
+            where: {
+                id: payment.orderId
+            },
+            data: {
+                paymentStatus: "PAID",
+                status: "CONFIRMED"
+            }
+        })
+
+        return {
+            payment: updatedPayment,
+            order: updatedOrder
         }
+
     })
 
 
@@ -154,11 +164,8 @@ const verifyPayment = asyncHandler(async (req: AuthRequest, res: Response) => {
     .json(
         new ApiResponse(
             200,
-            {
-                payment: updatedPayment,
-                order: updatedOrder
-            },
-
+            result,
+            "Payment verified successfully"
         )
     )
 })
