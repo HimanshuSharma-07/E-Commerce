@@ -16,7 +16,7 @@
   "type": "module",
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
-    "@prisma/client": "^7.9.1",
+    "@prisma/client": "^7.10.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.1",
     "concurrently": "^10.0.5",
@@ -27,7 +27,8 @@
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
     "nodemon": "^3.1.14",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "razorpay": "^2.9.8"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -39,7 +40,7 @@
     "@types/node": "^26.2.0",
     "@types/pg": "^8.23.1",
     "prettier": "^3.9.6",
-    "prisma": "^7.9.1",
+    "prisma": "^8.0.0-rc.12",
     "typescript": "^7.0.2"
   }
 }

@@ -154,12 +154,13 @@ model OrderItem {
 }
 
 model Payment {
-  id                String        @id @default(uuid())
-  orderId           String        @unique
-  paymentProviderId String        @unique
-  status            PaymentStatus 
-  amount            Int
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id             String        @id @default(uuid())
+  orderId        String        @unique
+  paymentOrderId String        @unique
+  paymentId      String?       @unique
+  status         PaymentStatus
+  amount         Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
