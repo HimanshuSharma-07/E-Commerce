@@ -10,11 +10,13 @@ const app = express();
 
 const PORT = 5000;
 
-app.use(express.json());
-app.use(morgan("dev"));
+app.use(express.json())
+app.use(morgan("dev"))
+app.use(express.urlencoded({ extended: true, limit: "16kb"}))
 app.use(cookieParser())
 
 
+// Routes imports
 import userRouter from "./routes/user.route.js"
 import productRouter from "./routes/product.route.js"
 import cartRouter from  "./routes/cart.route.js"
@@ -22,6 +24,8 @@ import orderRouter from "./routes/order.route.js"
 import addressRouter from "./routes/address.route.js" 
 import paymentRouter from "./routes/payment.route.js"
 
+
+// Routes Declaration
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/product", productRouter)
 app.use("/api/v1/cart", cartRouter)
