@@ -6,131 +6,147 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 
-const createOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
+const createOrder = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
 
-    const { addressId } = req.body
+        const { addressId } = req.body;
 
-    const cart = await prisma.cart.findUnique({
-        where: { 
-            userId: req.user.id
-        },
-        include: {
-            items: {
-                include: {
-                    product: {
-                        include: {
-                            inventory: true
+        // 1. Find user's cart
+        const cart = await prisma.cart.findUnique({
+            where: {
+                userId: req.user.id
+            },
+            include: {
+                items: {
+                    include: {
+                        product: {
+                            include: {
+                                inventory: true
+                            }
                         }
                     }
                 }
             }
-        }
-        
-    })
+        });
 
-    if (!cart) {
-        throw new ApiError(404, "Cart not found")
-    }
-
-    if(cart.items.length === 0){
-        throw new ApiError(400, "Cart is Empty")
-    }
-
-
-    const cartItems = cart.items;
-
-    for (const item of cartItems) {
-
-        if (!item.product.inventory) {
-            throw new ApiError(
-                404,
-                `Inventory not found for ${item.product.name}`
-            );
+        if (!cart) {
+            throw new ApiError(404, "Cart not found");
         }
 
-        const availableStock =
-            item.product.inventory.quantity -
-            item.product.inventory.reserved;
-
-        if (item.quantity > availableStock) {
-            throw new ApiError(
-                400,
-                `Only ${availableStock} ${item.product.name} left`
-            );
+        if (cart.items.length === 0) {
+            throw new ApiError(400, "Cart is Empty");
         }
-    }
-    
-    let totalAmount = 0;
 
-    for(const item of cartItems){
-        totalAmount += item.product.price * item.quantity
-    }
-    
-    const address = await prisma.address.findFirst({
-        where: {
-            id: addressId,
-            userId: req.user.id
-        }
-    }) 
-
-    if (!address) {
-        throw new ApiError(404, "Address not found")
-    }
-
-    const order = await prisma.$transaction(async(tx) => {
-
-        const order = await tx.order.create({
-            data: {
-                userId: req.user.id,
-                addressId: address.id,
-                totalAmount,
-                status: "PENDING",
-                paymentStatus: "PENDING",
-    
-            }
-        })
-    
-            for(const item of cartItems){
-            await tx.orderItem.create({
-                data: {
-                    productId: item.productId,
-                    orderId: order.id,
-                    unitPrice: item.product.price,
-                    quantity: item.quantity
-                }
-            })
-        }
-    
-        for(const item of cartItems){
-            await tx.inventory.update({
-                where: {
-                    productId: item.productId
-                },
-                data: {
-                    quantity: {
-                        decrement: item.quantity
-                    }
-                }
-            })
-        }
-    
-        await tx.cart.deleteMany({
+        // 2. Check address
+        const address = await prisma.address.findFirst({
             where: {
-                id: cart.id
+                id: addressId,
+                userId: req.user.id
             }
-        })
+        });
 
-        return order
+        if (!address) {
+            throw new ApiError(404, "Address not found");
+        }
 
-    })
+        const cartItems = cart.items;
 
-    return res
-    .status(201)
-    .json(
-        new ApiResponse(201, order, "Order Created Successfully")
-    )
-    
-})
+        // 3. Calculate total
+        let totalAmount = 0;
+
+        for (const item of cartItems) {
+            totalAmount += item.product.price * item.quantity;
+        }
+
+        // 4. Create order + reserve inventory
+        const order = await prisma.$transaction(
+            async (tx) => {
+
+                // Create order
+                const order = await tx.order.create({
+                    data: {
+                        userId: req.user.id,
+                        addressId: address.id,
+                        totalAmount,
+                        status: "PENDING",
+                        paymentStatus: "PENDING"
+                    }
+                });
+
+                // Create order items + reserve inventory
+                for (const item of cartItems) {
+
+                    const inventory = await tx.inventory.findUnique({
+                        where: {
+                            productId: item.productId
+                        }
+                    });
+
+                    if (!inventory) {
+                        throw new ApiError(
+                            404,
+                            `Inventory not found for ${item.product.name}`
+                        );
+                    }
+
+                    const availableStock =
+                        inventory.quantity - inventory.reserved;
+
+                    if (item.quantity > availableStock) {
+                        throw new ApiError(
+                            400,
+                            `Only ${availableStock} ${item.product.name} left`
+                        );
+                    }
+
+                    // Reserve inventory
+                    await tx.inventory.update({
+                        where: {
+                            productId: item.productId
+                        },
+                        data: {
+                            reserved: {
+                                increment: item.quantity
+                            }
+                        }
+                    });
+
+                    // Create order item
+                    await tx.orderItem.create({
+                        data: {
+                            productId: item.productId,
+                            orderId: order.id,
+                            unitPrice: item.product.price,
+                            quantity: item.quantity
+                        }
+                    });
+                }
+
+                // Clear cart
+                await tx.cart.delete({
+                    where: {
+                        id: cart.id
+                    }
+                });
+
+                return order;
+            },
+            {
+                isolationLevel: "Serializable"
+            }
+        );
+
+        return res
+            .status(201)
+            .json(
+                new ApiResponse(
+                    201,
+                    order,
+                    "Order Created Successfully"
+                )
+            );
+    }
+);
 
 const getMyOrders = asyncHandler(async (req: AuthRequest, res: Response) => {
 
